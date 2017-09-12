@@ -80,7 +80,10 @@ class Convert:
                         conv_layers_sc[conv_layer_name] = layer.name
                     proto.layer.remove(layer)
 
-        with open(self.network.replace('.prototxt', '-m.prototxt'), 'w') as f:
+        outproto = self.network.replace('.prototxt', '-m.prototxt')
+        outmodel = self.model.replace('.caffemodel', '-m.caffemodel')
+
+        with open(outproto, 'w') as f:
             f.write(str(proto))
 
         # calc new conv weights from original conv/bn/sc weights
@@ -108,15 +111,12 @@ class Convert:
                                                        np.newaxis] * old_w
 
         # make new net and save model
-        self.net = caffe.Net(self.network.replace('.prototxt', '-m.prototxt'),
-                             self.model, caffe.TEST)
+        self.net = caffe.Net(outproto, self.model, caffe.TEST)
         for layer in new_w:
             self.net.params[layer + '/mod'][0].data[...] = new_w[layer]
             self.net.params[layer + '/mod'][1].data[...] = new_b[layer]
-        self.net.save(self.model.replace('.caffemodel', '-m.caffemodel'))
-        self.net = caffe.Net(self.network.replace('.prototxt', '-m.prototxt'),
-                             self.model.replace('.caffemodel', '-m.caffemodel'),
-                             caffe.TEST)
+        self.net.save(outmodel)
+        self.net = caffe.Net(outproto, outmodel, caffe.TEST)
 
     def test(self):
         np.random.seed()
